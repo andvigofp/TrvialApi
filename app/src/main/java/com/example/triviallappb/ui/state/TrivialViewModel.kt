@@ -65,7 +65,6 @@ class TrivialViewModel : ViewModel() {
                             _questions.addAll(questionsList)
                             _totalQuestions.value = questionsList.size
                             _trivialUiState.value = TrivialUiState.Success(questionsList)
-                            startGame(questionsList.size)
                         } else {
                             _trivialUiState.value = TrivialUiState.Error
                             Log.e("TrivialViewModel", "No questions found")
@@ -92,12 +91,6 @@ class TrivialViewModel : ViewModel() {
         }
     }
 
-
-
-
-
-
-
     fun startGame(questionCount: Int) {
         _currentQuestionIndex.value = 0
         score = 0
@@ -109,7 +102,7 @@ class TrivialViewModel : ViewModel() {
         if (_answerShown.value) return
 
         val currentQuestion = questions[currentQuestionIndex]
-        val allAnswers = listOf(currentQuestion.correct_answer) + currentQuestion.incorrect_answers
+        val allAnswers = currentQuestion.incorrect_answers + currentQuestion.correct_answer
         val correctAnswerIndex = allAnswers.indexOf(currentQuestion.correct_answer)
 
         if (selectedIndex == correctAnswerIndex) {
@@ -130,7 +123,6 @@ class TrivialViewModel : ViewModel() {
         _answerShown.value = false
     }
 
-
     fun checkAndUpdateRecord(percentage: Int) {
         if (percentage > _record.value) {
             _record.value = percentage
@@ -144,6 +136,9 @@ class TrivialViewModel : ViewModel() {
         }
     }
 }
+
+
+
 
 
 

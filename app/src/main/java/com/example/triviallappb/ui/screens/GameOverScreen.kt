@@ -37,9 +37,9 @@ fun GameOverScreen(
 
     // Determinar el color de la puntuación final
     val scoreColor = when {
-        clampedScore >= 80 -> MaterialTheme.colorScheme.primary // Alta puntuación: Verde
-        clampedScore >= 50 -> MaterialTheme.colorScheme.secondary // Puntuación media
-        else -> MaterialTheme.colorScheme.error // Baja puntuación: Rojo
+        clampedScore >= 80 -> Color.Green // Alta puntuación: Verde
+        clampedScore >= 50 -> Color.Yellow // Puntuación media
+        else -> Color.Red // Baja puntuación: Rojo
     }
 
     // Solo actualizar el récord si es necesario
@@ -117,4 +117,5 @@ fun GameOverScreen(
         }
     }
 }
+
 

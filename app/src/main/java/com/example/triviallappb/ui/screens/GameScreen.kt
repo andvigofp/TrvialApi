@@ -30,7 +30,9 @@ import com.example.triviallappb.ui.state.TrivialViewModel
 fun GameScreen(viewModel: TrivialViewModel, onGameOver: () -> Unit, amount: Int) {
     LaunchedEffect(amount) {
         Log.d("GameScreen", "Fetching questions for amount: $amount")
-        viewModel.fetchQuestions(amount)
+        if (viewModel.questions.isEmpty()) {
+            viewModel.fetchQuestions(amount)
+        }
     }
 
     val trivialUiState = viewModel.trivialUiState.value
@@ -83,9 +85,10 @@ fun GameScreen(viewModel: TrivialViewModel, onGameOver: () -> Unit, amount: Int)
                 return
             }
 
-            val options = question.incorrect_answers + question.correct_answer
-            val shuffledOptions = options.shuffled()
-            val correctAnswerIndex = shuffledOptions.indexOf(question.correct_answer)
+            var shuffledOptions by remember(question) { mutableStateOf(listOf<String>()) }
+            LaunchedEffect(question) {
+                shuffledOptions = (question.incorrect_answers + question.correct_answer).shuffled()
+            }
 
             var selectedAnswerIndex by remember { mutableStateOf(-1) }
             var showResult by remember { mutableStateOf(false) }
@@ -101,23 +104,22 @@ fun GameScreen(viewModel: TrivialViewModel, onGameOver: () -> Unit, amount: Int)
                 Text(text = question.question, style = MaterialTheme.typography.bodyLarge)
 
                 shuffledOptions.forEachIndexed { index, option ->
-                    // Definir el color de fondo y bordes según la respuesta seleccionada
                     val backgroundColor = when {
                         !showResult -> MaterialTheme.colorScheme.surface
-                        index == correctAnswerIndex -> Color.Green // Respuesta correcta en verde
+                        option == question.correct_answer -> Color.Green // Respuesta correcta en verde
                         index == selectedAnswerIndex -> Color.Red // Respuesta incorrecta en rojo
-                        else -> Color.Gray // Opciones no seleccionadas en gris
+                        else -> MaterialTheme.colorScheme.surface // Opciones no seleccionadas
                     }
 
                     val borderColor = when {
                         !showResult -> MaterialTheme.colorScheme.surface
-                        index == correctAnswerIndex -> Color.Green // Respuesta correcta: borde verde
+                        option == question.correct_answer -> Color.Green // Respuesta correcta: borde verde
                         index == selectedAnswerIndex -> Color.Red // Respuesta incorrecta: borde rojo
-                        else -> Color.Black // Opciones no seleccionadas: borde negro
+                        else -> MaterialTheme.colorScheme.surface // Opciones no seleccionadas: borde predeterminado
                     }
 
                     val textColor = when {
-                        index == selectedAnswerIndex && index != correctAnswerIndex -> Color.White // Respuesta incorrecta seleccionada: texto blanco
+                        index == selectedAnswerIndex && option != question.correct_answer -> Color.White // Respuesta incorrecta seleccionada: texto blanco
                         else -> Color.Black // Respuesta correcta o no seleccionada: texto negro
                     }
 
@@ -142,7 +144,7 @@ fun GameScreen(viewModel: TrivialViewModel, onGameOver: () -> Unit, amount: Int)
 
                 if (showResult) {
                     Text(
-                        text = if (selectedAnswerIndex == correctAnswerIndex)
+                        text = if (shuffledOptions[selectedAnswerIndex] == question.correct_answer)
                             "¡Correcto!"
                         else
                             "Incorrecto. La respuesta correcta es: ${question.correct_answer}",
@@ -173,6 +175,9 @@ fun GameScreen(viewModel: TrivialViewModel, onGameOver: () -> Unit, amount: Int)
         }
     }
 }
+
+
+
 
 
 
