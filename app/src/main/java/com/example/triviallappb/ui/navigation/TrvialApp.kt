@@ -51,8 +51,11 @@ fun TrivialApp(viewModel: TrivialViewModel = viewModel()) {
             )
         }
         composable(TrivialScreen.GameOver.name) {
+            // Asegurémonos de pasar questionCount cuando volvemos a jugar
+            val questionCount = viewModel.totalQuestions
             GameOverScreen(
                 viewModel = viewModel,
+                questionCount = questionCount, // Pasar questionCount
                 onHome = {
                     viewModel.updateRecordAndNavigate()
                     navController.navigate(TrivialScreen.Home.name) {
@@ -60,8 +63,8 @@ fun TrivialApp(viewModel: TrivialViewModel = viewModel()) {
                     }
                 },
                 onReplay = {
-                    viewModel.startGame(viewModel.totalQuestions)
-                    navController.navigate("${TrivialScreen.Game.name}/${viewModel.totalQuestions}") {
+                    viewModel.startGame(questionCount) // Utilizar el questionCount al reiniciar el juego
+                    navController.navigate("${TrivialScreen.Game.name}/$questionCount") {
                         popUpTo(TrivialScreen.GameOver.name) { inclusive = true }
                     }
                 }
@@ -69,6 +72,7 @@ fun TrivialApp(viewModel: TrivialViewModel = viewModel()) {
         }
     }
 }
+
 
 
 

@@ -27,9 +27,8 @@ import com.example.triviallappb.ui.state.TrivialUiState
 import com.example.triviallappb.ui.state.TrivialViewModel
 
 @Composable
-fun GameScreen(viewModel: TrivialViewModel, onGameOver: () -> Unit, amount: Int) {
+fun GameScreen(viewModel: TrivialViewModel, amount: Int, onGameOver: () -> Unit) {
     LaunchedEffect(amount) {
-        Log.d("GameScreen", "Fetching questions for amount: $amount")
         if (viewModel.questions.isEmpty()) {
             viewModel.fetchQuestions(amount)
         }
@@ -85,11 +84,6 @@ fun GameScreen(viewModel: TrivialViewModel, onGameOver: () -> Unit, amount: Int)
                 return
             }
 
-            var shuffledOptions by remember(question) { mutableStateOf(listOf<String>()) }
-            LaunchedEffect(question) {
-                shuffledOptions = (question.incorrect_answers + question.correct_answer).shuffled()
-            }
-
             var selectedAnswerIndex by remember { mutableStateOf(-1) }
             var showResult by remember { mutableStateOf(false) }
 
@@ -103,23 +97,28 @@ fun GameScreen(viewModel: TrivialViewModel, onGameOver: () -> Unit, amount: Int)
 
                 Text(text = question.question, style = MaterialTheme.typography.bodyLarge)
 
+                val allOptions = question.incorrect_answers + question.correct_answer
+                val shuffledOptions = remember(question) { allOptions.shuffled() }
+
                 shuffledOptions.forEachIndexed { index, option ->
+
+                    // Definir el color de fondo y bordes según la respuesta seleccionada
                     val backgroundColor = when {
                         !showResult -> MaterialTheme.colorScheme.surface
-                        option == question.correct_answer -> Color.Green // Respuesta correcta en verde
+                        index == shuffledOptions.indexOf(question.correct_answer) -> Color.Green // Respuesta correcta en verde
                         index == selectedAnswerIndex -> Color.Red // Respuesta incorrecta en rojo
-                        else -> MaterialTheme.colorScheme.surface // Opciones no seleccionadas
+                        else -> Color.Gray // Opciones no seleccionadas en gris
                     }
 
                     val borderColor = when {
                         !showResult -> MaterialTheme.colorScheme.surface
-                        option == question.correct_answer -> Color.Green // Respuesta correcta: borde verde
+                        index == shuffledOptions.indexOf(question.correct_answer) -> Color.Green // Respuesta correcta: borde verde
                         index == selectedAnswerIndex -> Color.Red // Respuesta incorrecta: borde rojo
-                        else -> MaterialTheme.colorScheme.surface // Opciones no seleccionadas: borde predeterminado
+                        else -> Color.Black // Opciones no seleccionadas: borde negro
                     }
 
                     val textColor = when {
-                        index == selectedAnswerIndex && option != question.correct_answer -> Color.White // Respuesta incorrecta seleccionada: texto blanco
+                        index == selectedAnswerIndex && index != shuffledOptions.indexOf(question.correct_answer) -> Color.White // Respuesta incorrecta seleccionada: texto blanco
                         else -> Color.Black // Respuesta correcta o no seleccionada: texto negro
                     }
 
@@ -128,7 +127,9 @@ fun GameScreen(viewModel: TrivialViewModel, onGameOver: () -> Unit, amount: Int)
                             if (!showResult) {
                                 selectedAnswerIndex = index
                                 showResult = true
-                                viewModel.submitAnswer(index)
+
+                                // Llamada a submitAnswer para procesar la respuesta
+                                viewModel.submitAnswer(index, shuffledOptions)
                             }
                         },
                         modifier = Modifier
@@ -142,20 +143,20 @@ fun GameScreen(viewModel: TrivialViewModel, onGameOver: () -> Unit, amount: Int)
                     }
                 }
 
+                // Mostrar el resultado solo después de haber seleccionado una respuesta
                 if (showResult) {
                     Text(
-                        text = if (shuffledOptions[selectedAnswerIndex] == question.correct_answer)
+                        text = if (selectedAnswerIndex == shuffledOptions.indexOf(question.correct_answer))
                             "¡Correcto!"
                         else
                             "Incorrecto. La respuesta correcta es: ${question.correct_answer}",
                         style = MaterialTheme.typography.bodyLarge
                     )
 
-                    val isLastQuestion = viewModel.currentQuestionIndex + 1 >= viewModel.totalQuestions
                     Button(
                         onClick = {
-                            if (isLastQuestion) {
-                                onGameOver()
+                            if (viewModel.currentQuestionIndex + 1 >= viewModel.totalQuestions) {
+                                onGameOver() // Finaliza el juego si es la última pregunta
                             } else {
                                 viewModel.moveToNextQuestion()
                                 selectedAnswerIndex = -1
@@ -163,18 +164,20 @@ fun GameScreen(viewModel: TrivialViewModel, onGameOver: () -> Unit, amount: Int)
                             }
                         },
                         modifier = Modifier.padding(top = 16.dp),
-                        enabled = showResult
+                        enabled = showResult // Deshabilitar el botón "Siguiente" hasta que se haya mostrado el resultado
                     ) {
-                        Text(text = if (isLastQuestion) "Terminar" else "Siguiente")
+                        Text(text = "Siguiente")
                     }
                 }
 
-                // Mostrar la puntuación
-                Text(text = "Puntuación: ${viewModel.score}/${viewModel.totalQuestions}", style = MaterialTheme.typography.bodyLarge)
+                Text(text = "Puntuación: ${viewModel.score}/${viewModel.totalQuestions}")
             }
         }
     }
 }
+
+
+
 
 
 

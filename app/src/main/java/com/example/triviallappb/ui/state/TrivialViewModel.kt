@@ -96,20 +96,23 @@ class TrivialViewModel : ViewModel() {
         score = 0
         _gameOver.value = false
         _answerShown.value = false
+        fetchQuestions(questionCount) // Vuelve a cargar preguntas nuevas
     }
 
-    fun submitAnswer(selectedIndex: Int) {
-        if (_answerShown.value) return
+    fun getCorrectAnswerIndex(question: Question, shuffledOptions: List<String>): Int {
+        return shuffledOptions.indexOf(question.correct_answer)
+    }
 
+    fun submitAnswer(selectedIndex: Int, shuffledOptions: List<String>) {
         val currentQuestion = questions[currentQuestionIndex]
-        val allAnswers = currentQuestion.incorrect_answers + currentQuestion.correct_answer
-        val correctAnswerIndex = allAnswers.indexOf(currentQuestion.correct_answer)
 
-        if (selectedIndex == correctAnswerIndex) {
-            score++
+        if (!_answerShown.value) {
+            val correctAnswerIndex = getCorrectAnswerIndex(currentQuestion, shuffledOptions)
+            if (selectedIndex == correctAnswerIndex) {
+                score++
+            }
+            _answerShown.value = true
         }
-
-        _answerShown.value = true
     }
 
     fun moveToNextQuestion() {
@@ -136,6 +139,7 @@ class TrivialViewModel : ViewModel() {
         }
     }
 }
+
 
 
 

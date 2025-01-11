@@ -22,6 +22,7 @@ import com.example.triviallappb.ui.state.TrivialViewModel
 @Composable
 fun GameOverScreen(
     viewModel: TrivialViewModel,
+    questionCount: Int, // Añadido el parámetro questionCount
     onHome: () -> Unit,
     onReplay: () -> Unit
 ) {
@@ -32,37 +33,18 @@ fun GameOverScreen(
         0
     }
 
+    // Actualiza el récord si es necesario
+    viewModel.checkAndUpdateRecord(finalScorePercentage)
+
     // Limitar el porcentaje entre 0 y 100
     val clampedScore = finalScorePercentage.coerceIn(0, 100)
 
     // Determinar el color de la puntuación final
     val scoreColor = when {
-        clampedScore >= 80 -> Color.Green // Alta puntuación: Verde
-        clampedScore >= 50 -> Color.Yellow // Puntuación media
-        else -> Color.Red // Baja puntuación: Rojo
+        clampedScore >= 80 -> MaterialTheme.colorScheme.primary // Alta puntuación: Verde
+        clampedScore >= 50 -> MaterialTheme.colorScheme.secondary // Puntuación media
+        else -> MaterialTheme.colorScheme.error // Baja puntuación: Rojo
     }
-
-    // Solo actualizar el récord si es necesario
-    val shouldUpdateRecord = clampedScore > viewModel.record
-    if (shouldUpdateRecord) {
-        viewModel.checkAndUpdateRecord(clampedScore)
-    }
-
-    // Animación para el puntaje
-    val transition = remember { Animatable(0f) }
-    LaunchedEffect(clampedScore) {
-        transition.animateTo(clampedScore.toFloat(), animationSpec = tween(durationMillis = 1000))
-    }
-
-    // Color de fondo para el porcentaje
-    val lilacBackgroundColor = when {
-        clampedScore >= 80 -> Color.Green
-        clampedScore >= 50 -> Color.Yellow
-        else -> Color.Red
-    }
-
-    // Color de texto
-    val textColor = Color.White
 
     Column(
         modifier = Modifier
@@ -76,20 +58,22 @@ fun GameOverScreen(
             style = MaterialTheme.typography.headlineMedium
         )
 
-        // Animación para mostrar el porcentaje de puntuación
+        // Color de fondo fijo para el porcentaje
+        val darkVioletBackgroundColor = Color(0xFF8A2BE2) // Violeta oscuro
+        val textColor = Color.White // Letras en blanco
+
         Text(
-            text = "Puntuación final: ${transition.value.toInt()}%",
+            text = "Puntuación final: $clampedScore%",
             style = MaterialTheme.typography.bodyLarge,
             color = textColor,
             modifier = Modifier
-                .background(lilacBackgroundColor)
+                .background(darkVioletBackgroundColor)
                 .padding(8.dp)
         )
 
-        // Mostrar el récord actualizado con mensaje si hay un nuevo récord
-        val isNewRecord = clampedScore > viewModel.record
+        // Muestra el récord actualizado
         Text(
-            text = if (isNewRecord) "¡Nuevo récord!" else "Récord: ${viewModel.record}%",
+            text = "Récord: ${viewModel.record}%",
             style = MaterialTheme.typography.bodyLarge,
             color = scoreColor
         )
@@ -97,10 +81,7 @@ fun GameOverScreen(
         // Botón para ir al inicio
         Button(
             onClick = {
-                // Asegura que el récord esté actualizado antes de volver al inicio
-                if (shouldUpdateRecord) {
-                    viewModel.checkAndUpdateRecord(clampedScore)
-                }
+                viewModel.checkAndUpdateRecord(clampedScore) // Asegura que el récord esté actualizado
                 onHome()
             },
             modifier = Modifier.padding(top = 16.dp)
@@ -110,12 +91,17 @@ fun GameOverScreen(
 
         // Botón para reiniciar el juego
         Button(
-            onClick = onReplay,
+            onClick = {
+                viewModel.startGame(questionCount) // Llamar a startGame con el número correcto de preguntas
+                onReplay()
+            },
             modifier = Modifier.padding(top = 8.dp)
         ) {
             Text(text = "Volver a jugar")
         }
     }
 }
+
+
 
 
