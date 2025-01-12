@@ -1,16 +1,10 @@
 package com.example.triviallappb.ui.state
 
-import android.util.Log
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.example.triviallappb.model.Question
-import com.example.triviallappb.model.RetrofitClient
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlin.math.pow
 
 class TrivialViewModel : ViewModel() {
 
@@ -46,115 +40,55 @@ class TrivialViewModel : ViewModel() {
     private val _answerShown = mutableStateOf(false)
     val answerShown: Boolean get() = _answerShown.value
 
-    // Llamada dentro de ViewModel
+    private val gameFunctions = GameFunctions(this)
+    private val uiFunctions = UiFunctions(this)
+
+    // Llamadas a funciones del juego y UI
     fun fetchQuestions(amount: Int, difficulty: String = "easy", type: String = "multiple", retryCount: Int = 3) {
-        viewModelScope.launch {
-            _trivialUiState.value = TrivialUiState.Loading
-            try {
-                Log.d("TrivialViewModel", "Fetching questions with amount: $amount, difficulty: $difficulty, type: $type")
-                val response = RetrofitClient.apiService.getQuestions(amount, difficulty, type)
-
-                if (response.isSuccessful) {
-                    val responseBody = response.body()
-                    Log.d("TrivialViewModel", "API Response: $responseBody")
-                    if (responseBody?.response_code == 0) {
-                        val questionsList = responseBody.results
-                        Log.d("TrivialViewModel", "Questions fetched: ${questionsList.size}")
-                        if (!questionsList.isNullOrEmpty()) {
-                            _questions.clear()
-                            _questions.addAll(questionsList)
-                            _totalQuestions.value = questionsList.size
-                            _trivialUiState.value = TrivialUiState.Success(questionsList)
-                        } else {
-                            _trivialUiState.value = TrivialUiState.Error
-                            Log.e("TrivialViewModel", "No questions found")
-                        }
-                    } else {
-                        _trivialUiState.value = TrivialUiState.Error
-                        Log.e("TrivialViewModel", "API Response Code: ${responseBody?.response_code}")
-                    }
-                } else {
-                    if (response.code() == 429 && retryCount > 0) {
-                        // Esperar un tiempo antes de intentar nuevamente (exponencial backoff)
-                        val backoffTime = (2.0.pow((3 - retryCount).toDouble()) * 1000).toLong()
-                        delay(backoffTime)
-                        fetchQuestions(amount, difficulty, type, retryCount - 1)
-                    } else {
-                        _trivialUiState.value = TrivialUiState.Error
-                        Log.e("TrivialViewModel", "API Response Error: ${response.message()} (Code: ${response.code()})")
-                    }
-                }
-            } catch (e: Exception) {
-                _trivialUiState.value = TrivialUiState.Error
-                Log.e("TrivialViewModel", "Error fetching questions: ${e.message}")
-            }
-        }
+        uiFunctions.fetchQuestions(amount, difficulty, type, retryCount)
     }
 
-    fun startGame(questionCount: Int) {
-        _currentQuestionIndex.value = 0
-        score = 0
-        _gameOver.value = false
-        _answerShown.value = false
-        fetchQuestions(questionCount) // Vuelve a cargar preguntas nuevas
+    fun startGame(questionCount: Int) = gameFunctions.startGame(questionCount)
+    fun getCorrectAnswerIndex(question: Question, shuffledOptions: List<String>): Int = gameFunctions.getCorrectAnswerIndex(question, shuffledOptions)
+    fun submitAnswer(selectedIndex: Int, shuffledOptions: List<String>) = gameFunctions.submitAnswer(selectedIndex, shuffledOptions)
+    fun moveToNextQuestion() = gameFunctions.moveToNextQuestion()
+    fun checkAndUpdateRecord(percentage: Int) = gameFunctions.checkAndUpdateRecord(percentage)
+    fun updateRecordAndNavigate() = gameFunctions.updateRecordAndNavigate()
+
+    // Funciones auxiliares para manejar el estado del ViewModel
+    fun setTrivialUiState(state: TrivialUiState) {
+        _trivialUiState.value = state
     }
 
-    fun getCorrectAnswerIndex(question: Question, shuffledOptions: List<String>): Int {
-        return shuffledOptions.indexOf(question.correct_answer)
+    fun clearQuestions() {
+        _questions.clear()
     }
 
-    fun submitAnswer(selectedIndex: Int, shuffledOptions: List<String>) {
-        val currentQuestion = questions[currentQuestionIndex]
-
-        if (!_answerShown.value) {
-            val correctAnswerIndex = getCorrectAnswerIndex(currentQuestion, shuffledOptions)
-            if (selectedIndex == correctAnswerIndex) {
-                score++
-            }
-            _answerShown.value = true
-        }
+    fun addQuestions(questionsList: List<Question>) {
+        _questions.addAll(questionsList)
     }
 
-    fun moveToNextQuestion() {
-        if (currentQuestionIndex < questions.lastIndex) {
-            _currentQuestionIndex.value++
-        } else {
-            _gameOver.value = true
-            val percentage = (score * 100 / totalQuestions).coerceAtLeast(0)
-            checkAndUpdateRecord(percentage)
-        }
-        _answerShown.value = false
+    fun setTotalQuestions(value: Int) {
+        _totalQuestions.value = value
     }
 
-    fun checkAndUpdateRecord(percentage: Int) {
-        if (percentage > _record.value) {
-            _record.value = percentage
-        }
+    fun updateCurrentQuestionIndex(value: Int) {
+        _currentQuestionIndex.value = value
     }
 
-    fun updateRecordAndNavigate() {
-        val percentage = (score * 100) / totalQuestions
-        if (percentage > _record.value) {
-            _record.value = percentage
-        }
+    fun updateScore(value: Int) {
+        _score.value = value
+    }
+
+    fun updateRecord(value: Int) {
+        _record.value = value
+    }
+
+    fun setGameOver(value: Boolean) {
+        _gameOver.value = value
+    }
+
+    fun setAnswerShown(value: Boolean) {
+        _answerShown.value = value
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
