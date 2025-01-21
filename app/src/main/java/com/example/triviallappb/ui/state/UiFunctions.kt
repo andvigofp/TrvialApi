@@ -1,7 +1,9 @@
 package com.example.triviallappb.ui.state
 
 import android.util.Log
+import androidx.core.text.HtmlCompat
 import androidx.lifecycle.viewModelScope
+import com.example.triviallappb.model.Question
 import com.example.triviallappb.model.RetrofitClient
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -20,9 +22,22 @@ class UiFunctions(private val viewModel: TrivialViewModel) {
                     val responseBody = response.body()
                     Log.d("TrivialViewModel", "API Response: $responseBody")
                     if (responseBody?.response_code == 0) {
-                        val questionsList = responseBody.results
+                        // Desescapar caracteres especiales después de recibir los datos
+                        val questionsList: List<Question> = responseBody.results.map { q: Question ->
+                            Question(
+                                type = q.type,
+                                difficulty = q.difficulty,
+                                category = q.category,
+                                question = HtmlCompat.fromHtml(q.question, HtmlCompat.FROM_HTML_MODE_LEGACY).toString(),
+                                correct_answer = HtmlCompat.fromHtml(q.correct_answer, HtmlCompat.FROM_HTML_MODE_LEGACY).toString(),
+                                incorrect_answers = q.incorrect_answers.map { ans: String ->
+                                    HtmlCompat.fromHtml(ans, HtmlCompat.FROM_HTML_MODE_LEGACY).toString()
+                                }
+                            )
+                        }
+
                         Log.d("TrivialViewModel", "Questions fetched: ${questionsList.size}")
-                        if (!questionsList.isNullOrEmpty()) {
+                        if (questionsList.isNotEmpty()) {
                             viewModel.clearQuestions()
                             viewModel.addQuestions(questionsList)
                             viewModel.setTotalQuestions(questionsList.size)
